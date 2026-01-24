@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 THREE
+=======
+TWO
+>>>>>>> conflict-clean
