@@ -1,1 +1,4 @@
 test.txt
+backups/
+logs/*.log
+test.txt
