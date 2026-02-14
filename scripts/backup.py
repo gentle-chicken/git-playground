@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
-import os
+import argparse
 import shutil
-import sys
 from datetime import datetime
 from pathlib import Path
 
-SOURCE_DIR = Path.home() / "Documents" / "backup-source"
-BACKUP_ROOT = Path.cwd() / "backups"
 LOG_FILE = Path.cwd() / "logs" / "backup.log"
-
-DRY_RUN = "--dry-run" in sys.argv
 
 def log(msg: str) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -18,35 +13,50 @@ def log(msg: str) -> None:
     with LOG_FILE.open("a", encoding="utf-8") as f:
         f.write(line)
 
+def parse_args():
+    p = argparse.ArgumentParser(description="Simple backup script")
+    p.add_argument("--source", default=str(Path.home() / "Documents" / "backup-source"),
+                   help="Source directory to back up")
+    p.add_argument("--dest", default="backups",
+                   help="Destination root folder (inside repo or absolute path)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="Show what would happen, but don't copy files")
+    return p.parse_args()
+
 def main() -> None:
-    if not SOURCE_DIR.exists():
-        log(f"ERROR: source folder not found: {SOURCE_DIR}")
-        print(f"Source folder not found: {SOURCE_DIR}")
+    args = parse_args()
+    source_dir = Path(args.source).expanduser()
+    backup_root = Path(args.dest).expanduser()
+
+    if not source_dir.exists():
+        log(f"ERROR: source folder not found: {source_dir}")
+        print(f"Source folder not found: {source_dir}")
         return
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    dest = BACKUP_ROOT / stamp
+    dest = backup_root / stamp
 
-    if DRY_RUN:
+    if args.dry_run:
         print("[DRY-RUN] No files will be copied.")
     else:
         dest.mkdir(parents=True, exist_ok=True)
 
     copied = 0
-    for item in SOURCE_DIR.iterdir():
+    for item in source_dir.iterdir():
         if item.is_file():
-            if DRY_RUN:
+            if args.dry_run:
                 print(f"[DRY-RUN] Would copy: {item.name}")
             else:
                 shutil.copy2(item, dest / item.name)
                 copied += 1
 
-    if DRY_RUN:
-        log("DRY-RUN: backup simulated")
+    if args.dry_run:
+        log(f"DRY-RUN: simulated backup from {source_dir} to {backup_root}")
         print("[DRY-RUN] Done.")
     else:
-        log(f"OK: copied {copied} file(s) from {SOURCE_DIR} to {dest}")
+        log(f"OK: copied {copied} file(s) from {source_dir} to {dest}")
         print(f"Backup complete: {copied} file(s) -> {dest}")
 
 if __name__ == "__main__":
     main()
+
